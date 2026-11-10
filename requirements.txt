@@ -99,7 +99,6 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
 python-json-logger==4.2.0
 python-multipart==0.0.32
-pywin32==312
 pywinpty==3.1.1
 PyYAML==6.0.3
 pyzmq==27.2.0
