@@ -1,0 +1,161 @@
+<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Bike Buddy</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600&display=swap" rel=stylesheet>
+<style>
+:root{--c:#00e5ff;--o:#ff8a00;--r:#ff2a2a}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 50% 30%,#102033,#05070b 70%);color:#dff;font-family:Rajdhani,system-ui,sans-serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+.hud{position:fixed;inset:0;pointer-events:none;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
+.hud>*{pointer-events:auto}
+.logo{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:10px}
+.logo b{font:800 20px Orbitron,sans-serif;letter-spacing:3px;color:#fff;display:block}.logo b span{color:var(--o)}
+.logo small{display:block;font-size:11px;letter-spacing:4px;color:var(--c);opacity:.8}
+.veh{position:absolute;top:14px;right:14px;display:flex;gap:6px}
+.veh button,.pill{font:600 12px Orbitron,sans-serif;letter-spacing:1px;color:var(--c);background:#0a1420cc;border:1px solid #00e5ff55;border-radius:20px;padding:8px 12px;cursor:pointer;backdrop-filter:blur(8px)}
+.veh button.on{background:var(--c);color:#001018;box-shadow:0 0 14px var(--c)}
+.gauges{position:absolute;top:84px;left:14px;display:grid;gap:8px}
+.g{width:112px;padding:8px 10px;border-radius:12px;background:#0a1420b3;border:1px solid #00e5ff33;backdrop-filter:blur(8px)}
+.g small{display:block;font-size:11px;letter-spacing:2px;color:#7fb}.g b{font:800 18px Orbitron,sans-serif;color:#fff}.g.bad{border-color:var(--r);box-shadow:0 0 14px #ff2a2a66}.g.bad b{color:var(--r)}
+.bot{position:absolute;left:0;right:0;bottom:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+#st{max-width:min(92vw,560px);text-align:center;font-size:17px;padding:10px 16px;border-radius:14px;background:#0a1420cc;border:1px solid #00e5ff44;backdrop-filter:blur(10px)}
+.row{display:flex;align-items:center;gap:22px}
+.orb{--k:1;width:92px;height:92px;border-radius:50%;cursor:pointer;transform:scale(var(--k));background:radial-gradient(circle,#fff 0,var(--c) 22%,#0077ff55 55%,transparent 70%);box-shadow:0 0 30px var(--c),inset 0 0 20px #fff8;position:relative;transition:box-shadow .3s}
+.orb:before,.orb:after{content:"";position:absolute;inset:-12px;border-radius:50%;border:2px dashed #00e5ffaa;animation:sp 8s linear infinite}
+.orb:after{inset:-24px;border:1px solid #ff8a0088;animation-duration:14s;animation-direction:reverse}
+.orb.rec{box-shadow:0 0 50px var(--o),inset 0 0 20px #fff8;background:radial-gradient(circle,#fff 0,var(--o) 25%,#ff2a2a55 55%,transparent 70%)}
+@keyframes sp{to{transform:rotate(360deg)}}
+#cancel{display:none;background:#1a2a1a;color:#7f7;border-color:#7f7}
+
+
+body.alert:after{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 120px 30px #ff2a2a;animation:pu 1s ease-in-out infinite}
+@keyframes pu{50%{opacity:.25}}
+@media(max-width:640px){.gauges{grid-template-columns:repeat(3,1fr);top:70px;right:14px}.g{width:auto}.logo small{display:none}.veh button{padding:6px 8px;font-size:10px}}
+#pan{display:none;position:absolute;top:100px;right:14px;width:250px;padding:12px;border-radius:14px;background:#0a1420ee;border:1px solid #00e5ff55;backdrop-filter:blur(10px)}#pan.on{display:block}#pan input{width:100%;padding:8px;border-radius:8px;border:1px solid #00e5ff55;background:#05101a;color:#fff;font:600 16px Rajdhani,sans-serif}.lg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.lg button.on{background:var(--c);color:#001018}#pan label{font-size:11px;letter-spacing:2px;color:#7fb}#tools{display:none;position:absolute;top:100px;right:14px;width:250px;padding:12px;border-radius:14px;background:#0a1420ee;border:1px solid #00e5ff55;backdrop-filter:blur(10px)}#tools.on{display:block}#tools .pill{display:block;margin-top:6px;width:100%;text-align:center}.bot{pointer-events:none}.bot>*{pointer-events:auto}</style>
+<canvas id=c></canvas>
+<div class=hud>
+ <div class=logo><svg width=46 height=46 viewBox="0 0 48 48"><defs><linearGradient id=lg><stop offset=0 stop-color=#00e5ff /><stop offset=1 stop-color=#ff8a00 /></linearGradient></defs><circle cx=24 cy=24 r=20 fill=none stroke=url(#lg) stroke-width=3 stroke-dasharray="92 34" stroke-linecap=round /><circle cx=24 cy=24 r=11 fill=none stroke=#00e5ff stroke-width=1.5 opacity=.7 /><path d="M13 25h5l3-8 4 15 3-9h7" stroke=#ff8a00 stroke-width=2.5 fill=none stroke-linecap=round stroke-linejoin=round /></svg>
+  <div><b>BIKE<span>BUDDY</span></b><small id=sub>YOUR RIDING AI</small></div></div>
+ <div class=veh id=veh><button data-k=sport class=on>SPORT</button><button data-k=cruiser>CRUISER</button><button data-k=scooter>SCOOTER</button></div>
+ <button class=pill id=cfg style="position:absolute;top:56px;right:14px">⚙ BUDDY</button>
+ <div id=pan><label>BUDDY NAME</label><input id=nmi maxlength=15 placeholder="Buddy"><label style="display:block;margin-top:10px">EMERGENCY CONTACT</label><input id=ci maxlength=40 placeholder="Name, number"><label style="display:block;margin-top:10px">LANGUAGE</label>
+  <div class=lg id=lg><button class=pill data-l=hinglish>Hinglish</button><button class=pill data-l=english>English</button><button class=pill data-l=hindi>हिन्दी</button><button class=pill data-l=kannada>ಕನ್ನಡ</button></div></div>
+ <div class=gauges><div class=g id=gf><small>FRONT PSI</small><b>--</b></div><div class=g id=gr><small>REAR PSI</small><b>--</b></div><div class=g id=gu><small>FUEL %</small><b>--</b></div><div class=g id=gb><small>BATTERY V</small><b>--</b></div><div class=g id=gt><small>ENGINE °C</small><b>--</b></div><div class=g id=gc style="cursor:pointer"><small>CRASH GUARD</small><b>TAP TO ARM</b></div></div>
+ <button class=pill id=tb style="position:absolute;top:56px;right:124px">🛠 TOOLS</button>
+ <div id=tools><label class=pill><input type=checkbox id=ride> RIDE MODE (fake 40 km/h)</label><button class=pill id=sim>TEST: SIMULATE CRASH</button><button class=pill id=bike>TEST: BIKE TELEMETRY CRASH</button><button class=pill id=lowtyre>DEMO: LOW FRONT TYRE</button><a class=pill href=/dashboard target=_blank style="text-decoration:none">OPEN DASHBOARD</a></div>
+ <div class=bot><div id=st>Tap the orb and ask your bike anything. Tap a bike part to inspect it.</div>
+  <div class=row><button class=pill id=pre>PRE-RIDE CHECK</button><div id=orb class=orb></div><button class=pill id=cancel>I'M OK</button></div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=i=>document.getElementById(i);
+let guard=false,curG=1,noMic=false,acc=[],stream,speed=0,armed=false,buf=[],cool=0,cur=null,loc={},speaking=false,started=false,peak=0;
+const st=(t,r)=>{$('st').textContent=t;document.body.classList.toggle('alert',!!r)};
+const play=b=>new Promise(r=>{const a=new Audio('data:audio/wav;base64,'+b);speaking=true;const d=()=>{speaking=false;r()};a.onended=d;a.onerror=d;a.play().catch(d)});
+let lastLvl=-1;
+function level(ms){return new Promise(r=>{try{const c=new AudioContext(),s=c.createMediaStreamSource(stream),a=c.createAnalyser();s.connect(a);const d=new Uint8Array(a.fftSize);let mx=0;
+ const t=setInterval(()=>{a.getByteTimeDomainData(d);let m=0;d.forEach(v=>m=Math.max(m,Math.abs(v-128)));mx=Math.max(mx,m);$('orb').style.filter='brightness('+(1+m/30)+')'},60);
+ setTimeout(()=>{clearInterval(t);c.close();$('orb').style.filter='';r(mx)},ms)}catch(e){r(-1)}})}
+const rec=ms=>noMic?Promise.resolve(prompt('No mic. Type what the rider says (e.g. madad  or  haan theek hoon):')||''):new Promise(r=>{level(ms).then(v=>lastLvl=v);const c=[],m=new MediaRecorder(stream);m.ondataavailable=e=>c.push(e.data);m.onstop=()=>r(new Blob(c));m.start();setTimeout(()=>m.stop(),ms)});
+async function whyDeaf(){const e=await (await fetch('/api/lasterr')).json();
+ return lastLvl>=0&&lastLvl<3?'Mic level is ~0: the browser is recording silence. Choose the right microphone (lock icon > Site settings > Microphone) and check your Windows/phone input device.':(e.err||'No speech recognised. Speak right after the orb glows, close to the mic.')}
+const J=async r=>{const j=await r.json().catch(()=>({error:'bad response from server'}));if(j.error)st('Server: '+j.error,1);return j};
+const post=(u,b)=>fetch(u,{method:'POST',body:b}).then(J);
+const post2=(u,j)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(j)}).then(J);
+const form=(id,blob)=>{const f=new FormData();f.append('id',id);if(typeof blob==='string')f.append('text',blob);else f.append('audio',blob,'a.webm');return f};
+async function go(){if(started)return true;
+ try{if(window.DeviceMotionEvent&&DeviceMotionEvent.requestPermission)await DeviceMotionEvent.requestPermission()}catch(e){}
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){noMic=true;st('Mic unavailable: I will ask you to type answers in a popup instead.',1)}
+ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{speed=(p.coords.speed||0)*3.6;loc={lat:p.coords.latitude,lon:p.coords.longitude}},()=>{},{enableHighAccuracy:true});
+ started=true;guard=true;return true}
+/* ---- crash detection: impact then stillness ---- */
+addEventListener('devicemotion',e=>{const a=e.accelerationIncludingGravity;if(!a||!started)return;const m=Math.hypot(a.x,a.y,a.z),t=Date.now();curG=m/9.81;acc.push(m);if(acc.length>200)acc.shift();
+ if(guard&&!armed&&m>25&&t>cool){armed=true;buf=[];peak=m/9.81;setTimeout(check,2500)}
+ if(armed){buf.push(m);peak=Math.max(peak,m/9.81)}});
+function check(){armed=false;const mean=buf.reduce((a,b)=>a+b,0)/buf.length,sd=Math.sqrt(buf.reduce((a,b)=>a+(b-mean)**2,0)/buf.length);
+ if(sd<1.2){cool=Date.now()+30000;fire({speed_kmh:$('ride').checked?40:speed,peak_g:peak,trace:tr(),...loc})}}
+const tr=()=>acc.slice(-150).map(v=>+(v/9.81).toFixed(2)),fake=pk=>[...Array(40).fill(1),pk*.5,pk,pk*.6,2,1.4,1.1,...Array(40).fill(1)];
+let busy=false;async function fire(e){if(busy)return;busy=true;try{await fire0(e)}catch(x){console.error(x)}finally{busy=false}}
+async function fire0(e){e.source=e.source||'phone';e.contact=cfg.contact||'';e.trace=e.trace||fake(e.peak_g);const o=await post2('/api/event',e);if(o.mode==='none')return;cur=o.id;
+ st((o.mode==='crash'?'IMPACT DETECTED. ':'Phone drop? ')+o.text,o.mode==='crash');$('cancel').style.display='block';await play(o.audio);
+ st('Listening... say "haan theek hoon" or "madad"',o.mode==='crash');$('orb').classList.add('rec');
+ const a=await post('/api/answer',form(o.id,await rec(6000)));$('orb').classList.remove('rec');
+ st('You said: '+(a.text||'(nothing)')+' → '+a.status.toUpperCase()+(a.status==='escalated'?' | Alert sent to '+(cfg.contact||'your contacts')+' (simulated)':''),a.status==='escalated');await play(a.audio);
+ if(a.bystander){st('Speaking to people nearby...',1);const sb=await (await fetch('/api/say?k=by')).json();await play(sb.audio);const b=await post('/api/bystander',form(o.id,await rec(6000)));st('Bystander: '+(b.text||'(no reply)'),1)}
+ $('cancel').style.display='none'}
+$('cancel').onclick=()=>{post2('/api/cancel',{id:cur});$('cancel').style.display='none';st('Cancelled. False alarm logged.')};
+$('orb').onclick=async()=>{if(busy)return;busy=true;try{await orbAsk()}catch(x){console.error(x)}finally{busy=false}};
+async function sos(o){cur=o.id;st('You said: '+o.text+'  →  '+o.reply,1);$('cancel').style.display='block';await play(o.audio);
+ st('Speaking to people nearby...',1);const sb=await (await fetch('/api/say?k=by')).json();await play(sb.audio);
+ const b=await post('/api/bystander',form(o.id,await rec(6000)));st('Bystander: '+(b.text||'(no reply)')+'  |  Alert sent to '+(cfg.contact||'your contacts')+' (simulated)',1);$('cancel').style.display='none'}
+async function orbAsk(){if(!await go())return;st('Listening... ask about petrol, tyre, service, battery');$('orb').classList.add('rec');
+ const f=form('x',await rec(5000));f.append('contact',cfg.contact||'');f.append('lat',loc.lat||'');f.append('lon',loc.lon||'');const o=await post('/api/ask',f);$('orb').classList.remove('rec');if(o.error)return;if(o.emergency){await sos(o);return}if(!o.text)st(await whyDeaf(),1);else st('You: '+o.text+'  →  '+o.reply);await play(o.audio)};
+$('pre').onclick=async()=>{const o=await post('/api/precheck');st(o.reply,o.warnings>0);await play(o.audio)};
+$('lowtyre').onclick=()=>{post2('/api/bike/set',{tyre_front:19});st('Front tyre set to 19 PSI. Press PRE-RIDE CHECK.');setTimeout(poll,300)};
+$('sim').onclick=async()=>{if(await go())fire({speed_kmh:40,peak_g:4.5,source:'phone_sim'})};
+$('bike').onclick=async()=>{if(!await go())return;const o=await post('/api/sim');cur=o.id;st('Bike telemetry crash replay...',1);await play(o.audio);
+ const a=await post('/api/answer',form(o.id,await rec(6000)));st(a.status.toUpperCase(),a.status==='escalated');await play(a.audio)};
+async function askText(t){st('Inspecting: '+t);const o=await post2('/api/asktext',{text:t});st(o.reply);await play(o.audio)}
+let cfg={name:'Buddy',lang:'hinglish',contact:''};try{cfg=JSON.parse(localStorage.getItem('bb'))||cfg}catch(e){}
+function applyCfg(){try{localStorage.setItem('bb',JSON.stringify(cfg))}catch(e){}$('nmi').value=cfg.name;$('ci').value=cfg.contact||'';$('sub').textContent='ASK '+cfg.name.toUpperCase();
+ document.querySelectorAll('#lg button').forEach(b=>b.classList.toggle('on',b.dataset.l===cfg.lang));post2('/api/settings',cfg)}
+$('ci').onchange=()=>{cfg.contact=$('ci').value.slice(0,40);applyCfg();st('Emergency contact saved.')};
+$('cfg').onclick=()=>{$('pan').classList.toggle('on');$('tools').classList.remove('on')};
+$('tb').onclick=()=>{$('tools').classList.toggle('on');$('pan').classList.remove('on')};
+$('nmi').onchange=()=>{cfg.name=($('nmi').value||'Buddy').trim().slice(0,15);applyCfg();st('Hi! I am '+cfg.name+' now.')};
+document.querySelectorAll('#lg button').forEach(b=>b.onclick=()=>{cfg.lang=b.dataset.l;applyCfg();st('Language: '+b.textContent)});
+applyCfg();
+$('gc').onclick=async()=>{if(!started){await go();return}guard=!guard;st('Crash guard '+(guard?'ON':'OFF'))};
+setInterval(()=>{const g=$('gc');g.querySelector('b').textContent=!started?'TAP TO ARM':armed?'IMPACT?':guard?curG.toFixed(1)+' g':'OFF';g.classList.toggle('bad',armed);g.style.borderColor=guard&&!armed?'#3fb950':''},250);
+/* ---- 3D scene (three.js, all procedural: no model files) ---- */
+const cv=$('c'),RN=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});RN.setPixelRatio(Math.min(devicePixelRatio,2));
+const S=new THREE.Scene();S.fog=new THREE.FogExp2(0x05070b,.05);
+const cam=new THREE.PerspectiveCamera(45,1,.1,100);
+function fit(){RN.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.position.set(3.6,1.8,innerWidth<640?7.2:4.6);cam.lookAt(0,.75,0);cam.updateProjectionMatrix()}
+addEventListener('resize',fit);fit();
+S.add(new THREE.AmbientLight(0x7799bb,.8));const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(4,6,3);S.add(dl);
+const p1=new THREE.PointLight(0x00e5ff,1.6,14);p1.position.set(-3,2,2);S.add(p1);const p2=new THREE.PointLight(0xff8a00,1.4,14);p2.position.set(3,1,-3);S.add(p2);
+S.add(new THREE.GridHelper(40,80,0x00e5ff,0x0f2a3a));
+const ring=new THREE.Mesh(new THREE.RingGeometry(2.3,2.38,80),new THREE.MeshBasicMaterial({color:0x00e5ff,side:2,transparent:true,opacity:.7}));ring.rotation.x=-Math.PI/2;ring.position.y=.02;S.add(ring);
+const pg=new THREE.BufferGeometry(),pa=[];for(let i=0;i<350;i++)pa.push((Math.random()-.5)*18,Math.random()*6,(Math.random()-.5)*18);
+pg.setAttribute('position',new THREE.Float32BufferAttribute(pa,3));const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0x00e5ff,size:.03}));S.add(pts);
+const TYPES={sport:{wb:2.1,R:.52,col:0xff2a2a,tank:[.45,.2,.2],scoot:0},cruiser:{wb:2.7,R:.62,col:0xff8a00,tank:[.55,.28,.27],scoot:0},scooter:{wb:1.55,R:.36,col:0x00e5ff,tank:[.3,.16,.2],scoot:1}};
+const M=(c,e)=>new THREE.MeshStandardMaterial({color:c,metalness:.65,roughness:.3,emissive:e||0,emissiveIntensity:.15});
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+function bar(a,b,r,m){const d=V(0,0,0).subVectors(b,a),L=d.length(),o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,L,12),m);o.position.copy(a).addScaledVector(d,.5);o.quaternion.setFromUnitVectors(V(0,1,0),d.normalize());return o}
+let bike=new THREE.Group(),parts={},wheels=[];S.add(bike);
+function build(k){S.remove(bike);const T=TYPES[k],R=T.R,wb=T.wb,g=new THREE.Group();parts={};wheels=[];
+ const dark=M(0x1a1f2b),chrome=M(0xaab6c6),body=M(T.col),tag=(m,n)=>{m.userData.part=n;(parts[n]=parts[n]||[]).push(m);return m};
+ const wheel=(x,n)=>{const w=new THREE.Group();w.add(tag(new THREE.Mesh(new THREE.TorusGeometry(R,R*.2,16,48),M(0x151a22,0x00e5ff)),n),new THREE.Mesh(new THREE.TorusGeometry(R*.8,.02,8,48),M(0x00e5ff,0x00e5ff)));
+  for(let i=0;i<4;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(R*1.6,.014,.014),chrome);s.rotation.z=i*Math.PI/4;w.add(s)}w.position.set(x,R,0);g.add(w);wheels.push(w)};
+ wheel(wb/2,'tyre_front');wheel(-wb/2,'tyre_rear');
+ const fh=V(wb/2,R,0),rh=V(-wb/2,R,0),head=V(wb*.3,R*2+.35,0),seat=V(-wb*.22,R*2+.2,0),eng=V(0,R+.3,0);
+ [[head,fh,.04],[rh,eng,.05]].forEach(a=>g.add(bar(a[0],a[1],a[2],chrome)));
+ [[head,eng],[head,seat],[seat,rh]].forEach(a=>g.add(tag(bar(a[0],a[1],.04,body),'frame')));
+ const tk=tag(new THREE.Mesh(new THREE.SphereGeometry(1,24,16),body),'tank');tk.scale.set(...T.tank);tk.position.set(wb*.1,R*2+.3,0);g.add(tk);
+ const en=tag(new THREE.Mesh(new THREE.BoxGeometry(.55,.4,.36),dark),'engine');en.position.copy(eng);g.add(en);
+ const bt=tag(new THREE.Mesh(new THREE.BoxGeometry(.24,.18,.26),M(0x222a36)),'battery');bt.position.set(-wb*.26,R+.55,0);g.add(bt);
+ const st_=new THREE.Mesh(new THREE.BoxGeometry(.75,.09,.3),dark);st_.position.copy(seat);g.add(st_);
+ g.add(bar(V(head.x-.1,head.y+.12,-.36),V(head.x-.1,head.y+.12,.36),.03,chrome));
+ const hl=new THREE.Mesh(new THREE.SphereGeometry(.1,16,12),M(0xffffaa,0xffee88));hl.position.set(head.x+.16,head.y,0);g.add(hl);
+ g.add(bar(V(-wb*.1,R*.7,.2),V(-wb*.6,R*.9,.2),.05,chrome));
+ if(T.scoot){const b=new THREE.Mesh(new THREE.BoxGeometry(wb*.8,.32,.5),body);b.position.set(0,R+.2,0);g.add(b)}
+ bike=g;S.add(bike);poll()}
+function setPart(n,bad){(parts[n]||[]).forEach(m=>{m.material.emissive.setHex(bad?0xff2020:0x00e5ff);m.material.emissiveIntensity=bad?1.2:(n.startsWith('tyre')?.3:.15)})}
+async function poll(){try{const k=await (await fetch('/api/bike')).json(),s=k.state;
+ const set=(id,v,bad)=>{$(id).querySelector('b').textContent=v;$(id).classList.toggle('bad',bad)};
+ set('gf',s.tyre_front,s.tyre_front<28);set('gr',s.tyre_rear,s.tyre_rear<28);set('gu',s.fuel,s.fuel<15);set('gb',s.battery,s.battery<12);set('gt',s.engine_temp,s.engine_temp>105);
+ setPart('tyre_front',s.tyre_front<28);setPart('tyre_rear',s.tyre_rear<28);setPart('tank',s.fuel<15);setPart('battery',s.battery<12);setPart('engine',s.engine_temp>105);setPart('frame',s.next_service-s.odometer<=0)}catch(e){}}
+setInterval(poll,3000);
+document.querySelectorAll('#veh button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#veh button').forEach(x=>x.classList.remove('on'));b.classList.add('on');build(b.dataset.k)});
+build('sport');
+/* drag to rotate, tap a part to ask about it */
+const PH={tyre_front:'tyre pressure',tyre_rear:'tyre pressure',tank:'petrol kitna hai',engine:'engine temperature',battery:'battery',frame:'service kab due hai'};
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=false,moved=0,lx=0,pause=0;
+cv.addEventListener('pointerdown',e=>{drag=true;moved=0;lx=e.clientX});
+addEventListener('pointermove',e=>{if(!drag)return;const d=e.clientX-lx;lx=e.clientX;moved+=Math.abs(d);bike.rotation.y+=d*.01;pause=performance.now()+3000});
+addEventListener('pointerup',e=>{if(!drag)return;drag=false;if(moved>6)return;mv.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mv,cam);
+ const h=ray.intersectObjects([].concat(...Object.values(parts)),false)[0];if(h)askText(PH[h.object.userData.part])});
+function loop(t){requestAnimationFrame(loop);const s=t/1000,spin=.02+($('ride').checked?.1:0);wheels.forEach(w=>w.rotation.z-=spin);
+ if(!drag&&t>pause)bike.rotation.y+=.004;bike.position.y=Math.sin(s*1.5)*.025;ring.rotation.z=s*.3;pts.rotation.y=s*.02;
+ $('orb').style.setProperty('--k',1+(speaking?.07*Math.sin(s*14):0));RN.render(S,cam)}
+requestAnimationFrame(loop);
+</script></html>

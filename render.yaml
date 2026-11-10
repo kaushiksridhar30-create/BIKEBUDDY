@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: bike-buddy
+    runtime: docker
+    plan: free
+    envVars:
+      - key: GNANI_API_KEY
+        sync: false
+      - key: LLM_KEY
+        sync: false
+      - key: GNANI_CALL_CAP
+        value: "400"

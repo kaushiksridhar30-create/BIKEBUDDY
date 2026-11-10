@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:05,000
+Your bike should talk to you.
+
+2
+00:00:05,000 --> 00:00:15,000
+Ask anything, in your language.
+
+3
+00:00:15,000 --> 00:00:25,000
+It speaks first when something is wrong.
+
+4
+00:00:25,000 --> 00:00:33,000
+Name it. Switch languages.
+
+5
+00:00:33,000 --> 00:00:52,000
+Crash Guard: if you cannot answer, it calls for help (simulated alert).
+
+6
+00:00:52,000 --> 00:01:00,000
+Today an app. Next, inside every bike. Built on Gnani Prisma + Timbre.
