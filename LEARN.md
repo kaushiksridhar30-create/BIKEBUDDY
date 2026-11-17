@@ -37,3 +37,13 @@
 - **Telemetry is simulated:** STATE mimics what OBD-II/CAN would give. Replacing it is the OEM integration story.
 - **Proactive warnings:** warnings() runs rules on data, so the bike speaks first in the pre-ride check. Skill: rule engines.
 - **Interview line:** "Voice layer, intent layer and data layer are separate, so each can be swapped."
+
+## Full-feature layer (what was added)
+- **Provenance model** (`bike.py`): every value carries a source tag; demo vs live mode; stale = unavailable. Skill: honest data design.
+- **Alerts engine** (`alerts.py`): rules, hysteresis, spoken once per occurrence, fault log. Skill: avoiding alert spam.
+- **Ride analytics** (`rides.py`): GPS filtering, harsh braking from consecutive speeds, eco score (an estimate).
+- **Maintenance** (`maint.py`): distance + time reminders, riding-pace projection, battery trend regression.
+- **Safety** (`safety.py`, `notify.py`): tokenised share link, idempotent escalation, honest "simulated" delivery.
+- **Navigation** (`places.py`, `nav.py`): Overpass, Nominatim, OSRM with localized turn text.
+- **Voice router** (`skills.py`): intents return (reply, action); the client performs actions, so voice never sends SOS by itself.
+- Interview line: "Voice, intent, data, alert and safety layers are separate, and the UI never shows a value without its source."

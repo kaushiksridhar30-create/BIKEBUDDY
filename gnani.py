@@ -1,8 +1,7 @@
 """Gnani STT (Prisma) + TTS (Timbre) REST wrapper with throttling, retry on 429/5xx, and TTS caching."""
 import os, time, threading, requests
 BASE = "https://api.vachana.ai"
-_lock, _last, _cache, _calls = threading.Lock(), [0.0], {}, [0]
-CAP = int(os.environ.get('GNANI_CALL_CAP', '400'))   # protects your credits on a public demo
+_lock, _last, _cache = threading.Lock(), [0.0], {}
 
 def _headers():
     key = os.environ.get("GNANI_API_KEY")
@@ -11,8 +10,6 @@ def _headers():
 
 def _post(url, **kw):
     """One call at a time, 0.45 s apart; back off and retry when Gnani says 'too many requests'."""
-    _calls[0] += 1
-    if _calls[0] > CAP: raise RuntimeError("Demo call limit reached, please try again later")
     for n in range(5):
         with _lock:
             time.sleep(max(0, 0.45 - (time.time() - _last[0])))

@@ -1,0 +1,26 @@
+<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Live location - Bike Buddy</title>
+<style>:root{--c:#00e5ff;--r:#ff3b3b;--o:#ff8a00;--g:#3ddc84}*{box-sizing:border-box}body{margin:0;font:16px/1.4 system-ui,sans-serif;background:#05070b;color:#dff6ff}
+header{padding:14px 16px;border-bottom:1px solid #00e5ff33;font-weight:700;letter-spacing:2px}header span{color:var(--o)}
+#banner{padding:14px 16px;font-size:18px;font-weight:700;background:#0a1420}#banner.emergency{background:#7a0e16;animation:p 1.2s infinite}#banner.stale{background:#5a3a00}@keyframes p{50%{background:#a8141f}}
+#map{height:48vh;background:#0a1420}svg{width:100%;height:48vh;display:block;background:#05101a}main{padding:14px 16px;max-width:640px;margin:auto}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}a.b{flex:1;min-width:140px;text-align:center;padding:14px;border-radius:12px;border:1px solid var(--c);color:var(--c);text-decoration:none;font-weight:700}a.b.d{border-color:var(--r);color:#fff;background:#b3121c}small{color:#7fb3c4}</style>
+<header>BIKE<span>BUDDY</span> · live location</header><div id=banner>Loading...</div><div id=map></div>
+<main><div id=info></div><div class=row id=act></div><small>This page shows only the rider's name, position, speed and status. It stops updating when sharing ends.</small></main>
+<script>
+const tok=location.pathname.split('/').pop(), $=id=>document.getElementById(id), esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let L=null,map,mk,line,fit=false;
+function svg(tr,last){const p=tr.concat(last?[[last[0],last[1]]]:[]);if(p.length<1)return'';const la=p.map(x=>x[0]),lo=p.map(x=>x[1]),c=Math.cos(la[0]*Math.PI/180),W=600,H=400,pd=30,x0=Math.min(...lo),x1=Math.max(...lo),y0=Math.min(...la),y1=Math.max(...la),sc=Math.min((W-2*pd)/Math.max((x1-x0)*c,1e-5),(H-2*pd)/Math.max(y1-y0,1e-5),4e6);
+const P=q=>[(W-((x1-x0)*c*sc))/2+(q[1]-x0)*c*sc,H-(H-((y1-y0)*sc))/2-(q[0]-y0)*sc];const pts=p.map(q=>P(q).join(',')).join(' '),e=P(p[p.length-1]);
+return `<svg viewBox="0 0 ${W} ${H}"><polyline points="${pts}" fill=none stroke="#00e5ff" stroke-width=4 /><circle cx=${e[0]} cy=${e[1]} r=10 fill="#ff3b3b" /><text x=12 y=22 fill="#7fb3c4" font-size=13>Map tiles unavailable: showing the track only</text></svg>`}
+function loadL(){return new Promise(r=>{const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.append(c);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';s.onload=()=>r(window.L);s.onerror=()=>r(null);document.head.append(s)})}
+async function tick(){let d;try{d=await (await fetch('/api/track/'+tok)).json()}catch(e){$('banner').className='stale';$('banner').textContent='No connection. Retrying...';return}
+ if(!d.active){$('banner').className='';$('banner').textContent='Sharing has ended or this link is not valid.';$('map').style.display='none';$('info').innerHTML='';$('act').innerHTML='';return clearInterval(T)}
+ const age=d.updated?Math.round(Date.now()/1000-d.updated):null,stale=age==null||age>90;
+ $('banner').className=d.status==='emergency'?'emergency':stale?'stale':'';
+ $('banner').textContent=d.status==='emergency'?`EMERGENCY: ${d.rider} needs help`:d.status==='checking'?`${d.rider} may have had an accident. Checking...`:`${d.rider} is sharing their location`;
+ if(d.lat==null){$('info').innerHTML='<p>Waiting for the first GPS position...</p>'}else{
+  $('info').innerHTML=`<p><b>${esc(d.lat.toFixed(5))}, ${esc(d.lon.toFixed(5))}</b><br><small>${stale?'<b style="color:#ff8a00">Last update '+(age==null?'unknown':age+' s ago')+'. Signal may be lost.</b>':'Updated '+age+' s ago'}${d.speed!=null?' · '+Math.round(d.speed)+' km/h':''}</small></p>`;
+  const ll=[d.lat,d.lon];if(L){if(!map){map=L.map('map').setView(ll,16);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);mk=L.circleMarker(ll,{radius:10,color:'#fff',weight:2,fillColor:'#ff3b3b',fillOpacity:1}).addTo(map);line=L.polyline([],{color:'#00e5ff',weight:4}).addTo(map)}mk.setLatLng(ll);line.setLatLng(d.trail.map(t=>[t[0],t[1]]));map.panTo(ll)}else{$('map').outerHTML='<div id=map>'+svg(d.trail,ll)+'</div>'}}
+ $('act').innerHTML=(d.lat!=null?`<a class=b target=_blank href="https://maps.google.com/?q=${d.lat},${d.lon}">Open in Google Maps</a>`:'')+Object.entries(d.emergency).slice(0,2).map(([n,t])=>`<a class="b ${d.status==='emergency'?'d':''}" href="tel:${esc(t)}">Call ${esc(t)}<br><small>${esc(n)}</small></a>`).join('')}
+let T;loadL().then(l=>{L=l;if(!L)$('map').style.cssText='height:auto';tick();T=setInterval(tick,4000)});
+</script></html>

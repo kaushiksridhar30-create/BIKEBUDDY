@@ -90,8 +90,5 @@ _X = {"hinglish": {"thanks": "Koi baat nahi! Surakshit chaliye.", "how": "Main b
   "bye": "ಸರಿ, ಮತ್ತೆ ಸಿಗೋಣ. ಜಾಗರೂಕರಾಗಿ ಚಲಿಸಿ.", "can": "ನಾನು ಪೆಟ್ರೋಲ್, ಟೈರ್, ಸರ್ವಿಸ್, ಆಯಿಲ್, ಬ್ರೇಕ್, ಬ್ಯಾಟರಿ, ಮೈಲೇಜ್ ಬಗ್ಗೆ ಹೇಳಬಲ್ಲೆ. ಅಪಘಾತವಾದರೆ ಸಹಾಯವನ್ನೂ ಕರೆಯುತ್ತೇನೆ."}}
 for _k, _v in _X.items(): LANGS[_k]["T"].update(_v)
 
-_S = {"hinglish": "Main {n} hoon, aapke saath hoon. Ghabraiye mat. Maine madad bulane ke liye saare upay activate kar diye hain. Aapke emergency contact aur responders ko aapki location bheji ja rahi hai. Aap wahin rukiye aur shaant rahiye.",
- "english": "I'm {n}, and I'm right here with you. Stay calm. I have activated emergency measures. Your emergency contact and responders are being alerted with your location. Please stay where you are.",
- "hindi": "मैं {n} हूँ, आपके साथ हूँ। घबराइए मत। मैंने मदद बुलाने के सारे उपाय चालू कर दिए हैं। आपके इमरजेंसी संपर्क और रेस्पॉन्डर्स को आपकी लोकेशन भेजी जा रही है। आप वहीं रुकिए और शांत रहिए।",
- "kannada": "ನಾನು {n}, ನಿಮ್ಮ ಜೊತೆಗಿದ್ದೇನೆ. ಗಾಬರಿಯಾಗಬೇಡಿ. ಸಹಾಯ ಕರೆಯಲು ಎಲ್ಲ ಕ್ರಮಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿದ್ದೇನೆ. ನಿಮ್ಮ ತುರ್ತು ಸಂಪರ್ಕ ಮತ್ತು ಪ್ರತಿಕ್ರಿಯಾ ತಂಡಕ್ಕೆ ನಿಮ್ಮ ಸ್ಥಳ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ. ನೀವು ಅಲ್ಲಿಯೇ ಇರಿ ಮತ್ತು ಶಾಂತವಾಗಿರಿ."}
-for _k, _v in _S.items(): LANGS[_k]["T"]["sos"] = _v
+import lang_more; lang_more.merge(LANGS)   # strings for rides, safety, navigation, alerts, analytics
+SET.update({"speed_limit": 80, "speak_alerts": True, "rider": "Rider", "auto_odo": True})

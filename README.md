@@ -1,37 +1,31 @@
 # Bike Buddy
-A voice-first AI riding buddy built on **Gnani Prisma (speech-to-text)** and **Gnani Timbre (text-to-speech)**.
-Ask your bike about fuel, tyres, service, brakes, battery and papers in Hinglish, English, Hindi or Kannada. It speaks first in a pre-ride check, and its built-in **Crash Guard** notices a crash, asks "are you okay?", and escalates if you say help or stay silent.
+A voice-first riding companion: talk to Buddy (Kannada / Hindi / English / Hinglish), see live bike health, track rides, get proactive safety alerts, crash/SOS with live-location sharing, navigation, maintenance reminders, analytics and a digital garage. Built on Gnani Prisma (STT) + Timbre (TTS). Not an emergency service.
 
-> Prototype for the Great Indian AI Internship Challenge. Bike data and alerts are **simulated**. It never contacts real emergency services and is not a safety device.
+## Run
+1. Install ffmpeg. `pip install -r requirements.txt`. Copy `.env.example` to `.env`, set `GNANI_API_KEY`.
+2. `python app.py` (port 5000). Rider app: http://localhost:5000 . Responder dashboard: /dashboard . Old single-page demo: /classic .
+3. Phone sensors/GPS/mic need HTTPS: `ngrok http 5000`, open the https link, set `PUBLIC_URL` to it so share links work.
+4. Tests: `python test_engine.py` and `python -m pytest -q test_features.py`.
 
-## Features
-- 3D bike HUD (three.js), 3 vehicles, tap a part to hear its status, parts glow red on warnings
-- Multilingual voice: Hinglish, English, Hindi, Kannada. Rename your buddy by voice or settings
-- 20+ bike questions, voice maintenance log, pre-ride check, mis-heard word tolerance, small talk
-- **Crash Guard:** phone impact + stillness + GPS speed separates a crash from a dropped phone
-- Silence counts as "not okay". Bystander voice. Emergency contact. Responder dashboard with map, timeline and impact graph
-- Optional LLM (any OpenAI-compatible API) for free-form questions, grounded in bike data
+## Honest data: where every number comes from
+Each value is badged: **SENSOR** (from the bike), **GPS** (phone), **YOU** (entered by you), **ESTIMATE** (computed), **SIMULATED** (demo).
+- **Demo mode (default)** shows labelled simulated bike values so you can see every feature. Use the Home tab's demo tools to add sample rides/faults.
+- **Live mode** starts automatically when the first real packet reaches `POST /api/telemetry`; demo values are cleared, and values older than 60 s show as unavailable instead of stale numbers.
+- Missing sensors show "not available". Nothing is invented.
 
-## Architecture
-```
-Phone/Browser (mic, motion, GPS, 3D UI) -> Flask API -> Gnani Prisma (STT) -> intent rules / optional LLM
-                                                    -> Gnani Timbre (TTS) -> audio back
-Crash event (speed, g, trace) -> engine.decide() -> check-in -> escalate -> /dashboard
-Bike data layer (simulated STATE or bike_sim.csv) is swappable for real OBD-II/CAN telemetry.
-```
+## Connect a real bike
+POST JSON to `/api/telemetry` (set `TELEMETRY_TOKEN` and send `X-Token`). Fields: `battery_v, engine_temp, fuel_pct, tyre_front, tyre_rear, rpm, speed, odometer`. `bridge.py` forwards from a serial device (JSON lines) or an OBD-II adapter (`pip install pyserial obd`) and auto-reconnects.
 
-## Run locally
-1. Install Python 3.10+ and ffmpeg. `pip install -r requirements.txt`
-2. Copy `.env.example` to `.env` and add `GNANI_API_KEY`
-3. `python test_engine.py` then `python app.py` and open http://localhost:5000 (dashboard at /dashboard)
-4. Phone sensors need https: use a tunnel (`ngrok http 5000`) or the deployed URL
+## .env keys
+`GNANI_API_KEY` (voice; if wrong, the app falls back to browser voice) · `LLM_KEY`, `LLM_MODEL` (optional free-form chat and suggestions) · `BB_DATA` (data folder, default ./data) · `PUBLIC_URL` · `TELEMETRY_TOKEN` · `TWILIO_SID/TOKEN/FROM` or `ALERT_WEBHOOK_URL` (real alerts) · `DEFAULT_COUNTRY_CODE` · `OVERPASS_URL`, `NOMINATIM_URL`, `OSRM_URL`, `NAV_COUNTRY`, `HTTP_UA` (maps).
 
-## Deploy (Render, Docker)
-Push to GitHub, create a Render Web Service from the repo (Docker), set `GNANI_API_KEY` (and optionally `LLM_KEY`). `GNANI_CALL_CAP` limits voice calls per run to protect credits.
+## Safety behaviour
+Crash/drop opens a countdown (30/45 s); silence escalates. SOS has a 5 s cancel window. **Alerts are only really sent if SMS (Twilio) or a webhook is configured**; otherwise the app says "Nothing was actually sent" and offers SMS/WhatsApp/call buttons. Live-share links expose only location and status.
 
-## Files
-`app.py` API | `engine.py` crash logic and fuzzy matching | `bike.py` bike brain | `lang.py` language packs | `gnani.py` throttled Gnani client | `llm.py` optional LLM | `static/` UI and dashboard | `benchmark.py` noise test
-
-## Limitations
-Web page senses only while open and on screen (a native app or bike-integrated unit is the next step). Needs internet. State is in memory. Alerts are simulated. Speech accuracy for Kannada and Hindi is not benchmarked yet.
-"# BIKEBUDDY" 
+## Limits
+- A web page cannot track in the background: keep it open and on screen while riding.
+- Hands-free "Hey Buddy" needs Chrome/Edge and the page open.
+- Routing uses the public OSRM car profile; Overpass/Nominatim are fair-use public services. Nearby places are cached for offline.
+- Kannada/Hindi strings should be reviewed by a native speaker.
+- 3D bike loads three.js from a CDN; for offline use save it as static/vendor/three.min.js (see that folder).
+- Not built: community features, background native sensing.

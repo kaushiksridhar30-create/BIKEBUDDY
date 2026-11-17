@@ -1,11 +1,15 @@
-<!doctype html><meta charset=utf-8><title>Responder Dashboard</title>
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Responder Dashboard</title>
 <style>body{font-family:system-ui;margin:16px;background:#0f1115;color:#eee}.c{border:2px solid #444;border-radius:12px;padding:12px;margin:10px 0;display:flex;gap:14px;flex-wrap:wrap}
-.escalated{border-color:#e5484d}.ok,.false_alarm{border-color:#3fb950}.checking{border-color:#f2cc60}iframe{border:0;width:300px;height:200px}.t{font-size:14px}</style>
-<h2>Responder Dashboard (simulated)</h2><div id=b class=c></div><div id=l></div>
-<script>const spark=tr=>{if(!tr||tr.length<3)return'';const w=300,h=70,mx=Math.max(...tr,1.5),p=tr.map((v,k)=>(k*w/(tr.length-1)).toFixed(1)+','+(h-3-v/mx*(h-8)).toFixed(1)).join(' ');
+.escalated{border-color:#e5484d}.ok,.false_alarm{border-color:#3fb950}.checking{border-color:#f2cc60}iframe{border:0;width:300px;height:200px}.t{font-size:14px}.w{color:#f2cc60}a{color:#6cf}.b{font-size:11px;border:1px solid #888;border-radius:6px;padding:1px 5px;margin-left:4px}.sim{border-style:dashed;color:#bbb}</style>
+<h2>Responder Dashboard</h2><div id=b class=c></div><div id=l></div>
+<script>const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const spark=tr=>{if(!tr||tr.length<3)return'';const w=300,h=70,mx=Math.max(...tr,1.5),p=tr.map((v,k)=>(k*w/(tr.length-1)).toFixed(1)+','+(h-3-v/mx*(h-8)).toFixed(1)).join(' ');
 return '<svg width='+w+' height='+h+' style="background:#05101a;border-radius:8px;margin:6px 0"><polyline points="'+p+'" fill=none stroke=#ff8a00 stroke-width=2 /><text x=6 y=12 fill=#7fb font-size=10>impact trace, peak '+Math.max(...tr).toFixed(1)+' g</text></svg>'};
-async function r(){const k=await (await fetch('/api/bike')).json();document.getElementById('b').innerHTML='<div><b>Bike status</b> (simulated telemetry)<br>'+Object.entries(k.state).map(([a,v])=>a+': '+v).join(' | ')+'<br>'+(k.warnings.length?'<b style=color:#e5484d>'+k.warnings.join('; ')+'</b>':'No warnings')+'<br>Log: '+(k.log.join('; ')||'empty')+'</div>';const d=await (await fetch('/api/incidents')).json();
-document.getElementById('l').innerHTML=d.map(i=>`<div class="c ${i.status}"><div><b>${i.status.toUpperCase()}</b> (${i.mode}) #${i.id}<p>${i.summary}</p>
-${spark(i.trace)}${i.timeline.map(x=>`<div class=t>${x.t}s <b>${x.who}</b>: ${x.text}</div>`).join('')}</div>
-<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${i.lon-.004},${i.lat-.003},${i.lon+.004},${i.lat+.003}&marker=${i.lat},${i.lon}"></iframe></div>`).join('')||'No incidents yet'}
+async function r(){const s=await (await fetch('/api/status')).json(),c=s.conn.status;
+document.getElementById('b').innerHTML='<div><b>Bike: '+E(s.bike.name)+'</b> <span class="b '+(c==='simulated'?'sim':'')+'">'+E(c==='simulated'?'SIMULATED DATA':c.toUpperCase())+'</span><br>'+Object.entries(s.state).filter(([k])=>!k.startsWith('bike_')).map(([a,v])=>E(a)+': '+E(v)+' <span class="b '+((s.src[a]||{}).src==='sim'?'sim':'')+'">'+E((s.src[a]||{}).src||'')+'</span>').join(' | ')+'<br>'+(s.alerts.active.length?'<b style=color:#e5484d>'+s.alerts.active.map(a=>E(a.text_en)).join('; ')+'</b>':'No active alerts')+(s.ride?'<br>Ride in progress: '+s.ride.dist_km+' km, '+s.ride.speed+' km/h':'')+'</div>';
+const d=await (await fetch('/api/incidents')).json();
+document.getElementById('l').innerHTML=d.map(i=>`<div class="c ${E(i.status)}"><div><b>${E(i.status.toUpperCase())}</b> (${E(i.mode)}) #${E(i.id)}<p>${E(i.summary)}</p>
+${i.share?'<p>Live tracking: <a href="'+E(i.share.url)+'" target=_blank>'+E(i.share.url)+'</a></p>':''}${i.notified.map(n=>'<div class=t>'+E(n.contact)+': <b class='+(n.status==='sent'?'':'w')+'>'+E(n.status)+'</b> via '+E(n.channel)+' '+E(n.detail)+'</div>').join('')}
+${i.hospitals.length?'<p>Nearest hospital: '+E(i.hospitals[0].name||'unnamed')+' ('+(i.hospitals[0].dist_m/1000).toFixed(1)+' km)</p>':''}${spark(i.trace)}${i.timeline.map(x=>`<div class=t>${x.t}s <b>${E(x.who)}</b>: ${E(x.text)}</div>`).join('')}</div>
+${i.lat==null?'<div class=w>Location unknown (no GPS fix)</div>':`<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${i.lon-.004},${i.lat-.003},${i.lon+.004},${i.lat+.003}&marker=${i.lat},${i.lon}"></iframe>`}</div>`).join('')||'No incidents yet'}
 r();setInterval(r,2000)</script>

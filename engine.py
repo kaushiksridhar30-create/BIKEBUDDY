@@ -12,20 +12,8 @@ def fz(t, words, cut=0.8):
     t = f" {t} "
     if any(w in t for w in words): return True
     toks = [x for x in t.split() if len(x) >= 5]   # short words ('hoon' vs 'khoon') are too ambiguous to fuzzy-match
-    single = [w for w in words if " " not in w and len(w) >= 4]   # padded words like " chot " are exact-only
+    single = [w.strip() for w in words if " " not in w.strip() and len(w.strip()) >= 4]
     return any(difflib.get_close_matches(x, single, n=1, cutoff=cut) for x in toks)
-
-STRONG = ["accident", "crash", "bachao", "emergency", "ambulance", "bleeding", "khoon", " chot ", "एक्सीडेंट", "दुर्घटना", "बचाओ", "चोट", "खून",
-          "ಅಪಘಾತ", "ಕಾಪಾಡಿ", "ರಕ್ತ", "ಗಾಯ"]
-WEAK = ["help", "madad", "need help", "मदद", "ಸಹಾಯ"]
-
-def is_emergency(text: str, bike_words) -> bool:
-    """Spoken SOS in the normal chat flow. 'help me check my tyre' must NOT trigger it, so a bare 'help' only counts when
-    the sentence is short and has no bike keyword."""
-    t = re.sub(r"[.,?!।]", " ", text.lower()).strip()
-    if not t: return False
-    if fz(t, STRONG): return True
-    return fz(t, WEAK) and len(t.split()) <= 6 and not any(w in f" {t} " for w in bike_words)
 
 def classify(text: str) -> str:
     """help > fine > unclear. Unclear is NEVER treated as 'fine'."""
@@ -52,22 +40,32 @@ def from_bike_csv(path: str) -> dict:
 
 class Incident:
     def __init__(self, mode, e):
-        self.id = uuid.uuid4().hex[:8]; self.mode = mode
+        self.id = uuid.uuid4().hex[:8]; self.mode = mode          # mode: crash | drop | sos
         self.source = e.get("source", "phone"); self.speed = e.get("speed_kmh", 0); self.peak_g = e.get("peak_g", 0)
-        self.lat = e.get("lat") or 12.9716; self.lon = e.get("lon") or 77.5946
-        self.status = "checking"; self.injured = None; self.timeline = []
+        lat, lon = e.get("lat"), e.get("lon")
+        if lat is not None and lon is not None: self.loc = "gps"
+        elif self.source in ("bike_sim", "phone_sim"): lat, lon, self.loc = 12.9716, 77.5946, "demo"   # simulated events only; clearly flagged
+        else: lat = lon = None; self.loc = "none"                                                       # never invent a location for a real emergency
+        self.lat, self.lon = lat, lon
+        self.status = "checking"; self.injured = None; self.timeline = []; self.share = None; self.hospitals = []; self.notified = []
         self.trace = [round(float(x), 2) for x in (e.get("trace") or [])][:400]
         self.contact = re.sub(r"[<>&\"']", "", str(e.get("contact", "")))[:40]
-        self.t0 = time.time(); self.add("system", "SOS spoken by rider" if self.source == "voice_sos" else f"{mode} detected: {self.speed:.0f} km/h, {self.peak_g:.1f} g ({self.source})")
+        self.t0 = time.time(); self.updated = self.t0
+        self.add("system", f"{mode} detected: {self.speed:.0f} km/h, {self.peak_g:.1f} g ({self.source})" if mode != "sos" else f"SOS pressed ({self.source})")
 
     def add(self, who, text):
-        self.timeline.append({"t": round(time.time() - self.t0, 1), "who": who, "text": text})
+        self.updated = time.time(); self.timeline.append({"t": round(time.time() - self.t0, 1), "who": who, "text": text})
+
+    def where(self): return f"{self.lat:.4f},{self.lon:.4f}" if self.lat is not None else "unknown (no GPS fix)"
 
     def summary(self):
         said = [x["text"] for x in self.timeline if x["who"] == "rider"]
-        return (f"{'Rider reported an emergency by voice' if self.source == 'voice_sos' else 'Possible road crash'} at {self.lat:.4f},{self.lon:.4f}. Speed before impact {self.speed:.0f} km/h. "
+        what = "SOS pressed by rider" if self.mode == "sos" else "Possible road crash"
+        sp = "" if self.mode == "sos" else f" Speed before impact {self.speed:.0f} km/h."
+        return (f"{what} at {self.where()}{' (demo location)' if self.loc == 'demo' else ''}.{sp} "
                 f"Rider said: {said[-1] if said else 'nothing'}. Injured: {self.injured or 'unknown'}. Status: {self.status}. Contact: {self.contact or 'none set'}.")
 
     def dict(self):
-        return {"id": self.id, "mode": self.mode, "status": self.status, "lat": self.lat, "lon": self.lon,
-                "timeline": self.timeline, "trace": self.trace, "contact": self.contact, "summary": self.summary()}
+        return {"id": self.id, "mode": self.mode, "status": self.status, "lat": self.lat, "lon": self.lon, "loc": self.loc,
+                "timeline": self.timeline, "trace": self.trace, "contact": self.contact, "summary": self.summary(), "share": self.share,
+                "hospitals": self.hospitals, "notified": self.notified, "updated": self.updated}
